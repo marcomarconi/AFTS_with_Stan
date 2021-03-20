@@ -1,0 +1,33 @@
+---
+title: "Chapter 2"
+output: html_document
+---
+
+```{r setup, include=FALSE,echo=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+read_chunk('common.R')
+read_chunk('Chapter_2.R')
+```
+
+```{r load_packages, message=FALSE}
+```
+
+Most of the models listed in chapter 2 were already translated into Stan as part of the official documentation and can be found at <https://mc-stan.org/docs/2_26/stan-users-guide/time-series-chapter.html>. Still, we will go through them in the current document.
+
+## SIMPLE AR MODELS
+
+The typical AR(K) model can be coded in Stan as follow:
+
+```{r show_AR_model, message=FALSE, echo=FALSE}
+```
+
+### Example 2.1.
+
+The first example applies ar AR(3) to the quarterly growth rate of U.S.
+real gross national product (GNP), seasonally adjusted, from the second quarter
+of 1947 to the first quarter of 1991.
+
+```{r plot_gnp, message=FALSE, echo=FALSE}
+```
+
