@@ -1,17 +1,20 @@
 ---
 title: "Chapter 2"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE,echo=FALSE}
-library(knitr)
+require(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 read_chunk('common.R')
 read_chunk('Chapter_2.R')
 ```
 
-```{r load_packages, message=FALSE}
+```{r load_packages,   message=FALSE}
 ```
+
 
 Most of the models listed in chapter 2 were already translated into Stan as part of the official documentation and can be found at <https://mc-stan.org/docs/2_26/stan-users-guide/time-series-chapter.html>. Still, we will go through them in the current document.
 
@@ -19,7 +22,8 @@ Most of the models listed in chapter 2 were already translated into Stan as part
 
 The typical AR(K) model can be coded in Stan as follow:
 
-```{r show_AR_model, message=FALSE, echo=FALSE}
+
+```{stan code=readLines("../models/Chapter_2/AR.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
 ```
 
 ### Example 2.1.
@@ -28,6 +32,60 @@ The first example applies ar AR(3) to the quarterly growth rate of U.S.
 real gross national product (GNP), seasonally adjusted, from the second quarter
 of 1947 to the first quarter of 1991.
 
-```{r plot_gnp, message=FALSE, echo=FALSE}
+```{r plot_gnp}
+```
+
+Let's compile the stan model and fit it to the data:
+
+```{r fit_AR_gnp}
+```
+
+
+
+As shown below, parameter estimation is similar to the one obtained in the book using ML:
+
+```{r print_AR_gnp}
+```
+
+
+
+We can also check that the residuals do not present serial correlation Q(12) and therefore resemble white noise:
+
+```{r print_Box.text}
+```
+
+Forecasting can be iteratively starting from the last known value (see pag. 56 for the formula). To show this we refit the model leaving out the last 12 observations, and compare the 12-step ahead predictions against the real data:
+
+```{r AR_predictions}
+```
+
+We can also compare model using the loo package. This kind of model checking is probably not correct for time series if our scope is to assess out-of-sample model prediction as we are including data from the future when performing approximate LOO cross validation. A better solution would to use leave-future-out cross-validation (LFO-CV), see <https://mc-stan.org/loo/articles/loo2-lfo.html>. However, if we are simply interested in evaluation different models ability to learn the relevant structures of the data, loo can be used for model selection, which is still better than the typical AIC used in the book. 
+For example, we can compare the previous AR(3) mode with a simpler AR(1) model:
+
+```{r  AR_loo_compare, echo=FALSE}
+```
+
+As it can be seen, the difference is negligible. We will keep using loo for model comparison along this presentation.
+
+## Addendum: AR-GAS models
+
+Blasques, Koopman and Lucas proposed an alternative AR model with time-varying temporal dependency, <https://www.slideshare.net/SYRTOproject/timevarying-temporal-dependene-in-autoregressive-models> where the AR component is allowed to vary over time based on a score function:
+
+$$y_t = f_t \times y_{t-1} + u_t, \quad f_t = \omega + \alpha \frac{u_{t-1}y_{t-1}} {\sigma^2_u}+\beta f_{t-1} $$
+The AR-GAS model can be coded in Stan as follows:
+
+```{stan code=readLines("../models/Chapter_2/AR-GAS.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+```
+
+We fit the AR-GAS model to the previous data:
+
+```{r fit_AR_GAS, results = 'hide', error=FALSE, warning=FALSE, message=FALSE}
+```
+
+There will be a few divergences, better priors would probably fix that.
+We can see the time-varying effect of the AR component:
+
+```{r  plot_AR_GAS, fig.keep = 'last', fig.height=7}
+
 ```
 
