@@ -1,5 +1,4 @@
 ---
-title: "Chapter 2 - Linear Time Series Analysis and Its Applications"
 output:
   html_document: default
   pdf_document: default
