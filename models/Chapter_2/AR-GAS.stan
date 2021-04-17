@@ -25,7 +25,7 @@ transformed parameters {
   }
 }
 model {
-  omega ~ normal(0, 1);
+  omega ~ normal(0, 0.1);
   alpha ~ normal(0, 1);
   beta ~ normal(0, 1);
   sigma ~ cauchy(0, 1);

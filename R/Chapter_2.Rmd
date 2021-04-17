@@ -59,13 +59,65 @@ Forecasting can be iteratively starting from the last known value (see pag. 56 f
 ```{r AR_predictions}
 ```
 
-We can also compare model using the loo package. This kind of model checking is probably not correct for time series if our scope is to assess out-of-sample model prediction as we are including data from the future when performing approximate LOO cross validation. A better solution would to use leave-future-out cross-validation (LFO-CV), see <https://mc-stan.org/loo/articles/loo2-lfo.html>. However, if we are simply interested in evaluation different models ability to learn the relevant structures of the data, loo can be used for model selection, which is still better than the typical AIC used in the book. 
+We can also compare model using the loo package. This kind of model checking is probably not correct for time series if our scope is to assess out-of-sample model prediction as we are including data from the future when performing approximate LOO cross validation. A better solution would to use leave-future-out cross-validation (LFO-CV), see <https://mc-stan.org/loo/articles/loo2-lfo.html>. However, if we are simply interested in evaluation different models ability to learn the relevant structures of the data, loo can be used for model selection, which is still better than the typical AIC used in the book.
 For example, we can compare the previous AR(3) mode with a simpler AR(1) model:
 
 ```{r  AR_loo_compare, echo=FALSE}
 ```
 
 As it can be seen, the difference is negligible. We will keep using loo for model comparison along this presentation.
+
+## REGRESSION MODELS WITH TIME SERIES ERRORS
+
+
+Consider the common linear regression model:
+
+$$y_t = \alpha + \beta x_{t} + e_{t} $$
+
+where _y~t~_ and _x~t~_ are two time series and _e~t~_ denotes the error term. The error term should be white noise.
+Now, consider the U.S. weekly interest rate data shown in the example:
+
+
+```{r  load_TSE}
+```
+
+We can fit a simple linear regression model to the data, and observe the residuals plot and ACF:
+
+
+
+```{r  lm_TSE}
+```
+
+
+
+Notice that when regressing between these two time series the error is serially correlated, which does not agree with the assumption that the errors should be white noise.
+We can also apply the linear regression model to the differenced time series:
+
+
+```{r  lm_diff_TSE}
+```
+
+
+The linear dependence is still strong and the ACF still shows some significant serial correlations in the residuals, but magnitudes
+of the correlations are much smaller.
+A simple solution is to model the error term as a time series itself. In the example, the error term is modeled as a MA(1) process:
+
+$$\Delta y_t = \beta \Delta x_{t} + e_{t}, \quad e_t = a_t - \theta_1 a_{t-1}   $$
+
+where _a~t~_ is white noise. The resulting model is a simple example of linear regression with time series errors.
+Such model can be easily implemented in Stan:
+
+```{stan code=readLines("../models/Chapter_2/TSE.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+```
+
+We applied the proposed model to the U.S. weekly interest rate data shown in the example, and plot the residuals ACF:
+
+```{r  stan_TSE}
+```
+```{r  plot_stan_TSE}
+```
+
+The serial correlations in the residuals is now strongly reduced.
 
 ## Addendum: AR-GAS models
 
@@ -77,7 +129,7 @@ The AR-GAS model can be coded in Stan as follows:
 ```{stan code=readLines("../models/Chapter_2/AR-GAS.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
 ```
 
-We fit the AR-GAS model to the previous data:
+We fit the AR-GAS model to the unemployement insurance claims data (as in the example at slide 27):
 
 ```{r fit_AR_GAS, results = 'hide', error=FALSE, warning=FALSE, message=FALSE}
 ```
@@ -88,4 +140,5 @@ We can see the time-varying effect of the AR component:
 ```{r  plot_AR_GAS, fig.keep = 'last', fig.height=7}
 
 ```
+
 

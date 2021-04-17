@@ -48,13 +48,44 @@ loo_compare(loo(AR_gnp), loo(AR1_gnp))
 
 ## @knitr fit_AR_GAS
 
-#AR_GAS_model <- stan_model("../models/Chapter_2/AR-GAS.stan")
+uic <- scan("../data/UIC.txt")
+AR_GAS_model <- stan_model("../models/Chapter_2/AR-GAS.stan")
 AR_GAS_model <- readRDS("../models/Chapter_2/AR-GAS.rds")
-AR_GAS_gnp <- sampling(AR_GAS_model, data=list(N=length(gnp1), y=gnp1), chains=4, cores=4)
+AR_GAS_uic <- sampling(AR_GAS_model, data=list(N=length(uic), y=uic), chains=4, cores=4)
 
 ## @knitr plot_AR_GAS
 
 par(mfrow=c(2,1), mai = c(1, 1, 0.1, 0.1))
-plot.ts(gnp1)
-ar <- extract(AR_GAS_gnp, pars="ar")[[1]] %>% colMeans()
-plot.ts(2*( invlogit(ar)-0.5), ylab="AR", ylim=c(0,1))
+plot.ts(uic)
+ar <- extract(AR_GAS_uic, pars="ar")[[1]] %>% colMeans()
+plot.ts(2*( invlogit(ar)-0.5), ylab="AR")
+
+## @knitr load_TSE
+y1 <- read.table("../data/w-gs1yr.txt", header=T)
+y3 <- read.table("../data/w-gs3yr.txt", header=T)
+y <- ts(cbind(y1$rate, y3$rate), start = c(1962, 1), frequency = 52)
+colnames(y) <- c("Treasury1", "Treasury3")
+plot.ts(y, plot.type = "single", ylab="Percent")
+
+## @knitr lm_TSE
+fit <- lm(Treasury3 ~ Treasury1, data=y)
+summary(fit)
+plot.ts(fit$residuals)
+acf(fit$residuals)
+
+## @knitr lm_diff_TSE
+y_diff <- diff(y)
+fit_diff <- lm(Treasury3 ~ 0+Treasury1, data=y_diff)
+summary(fit_diff)
+plot.ts(fit_diff$residuals)
+acf(fit_diff$residuals)
+
+## @knitr stan_TSE
+TSE <- stan_model("../models/Chapter_2/TSE.stan")
+tse <- sampling(TSE, data=list(N=nrow(y_diff), y=y_diff[,2], x=y_diff[,1]), chains=1)
+
+## @knitr plot_stan_TSE
+extract(tse, pars="a")[[1]] %>% colMeans() -> a
+plot.ts(a)
+acf(a)
+Box.test(a, lag=12, type="Ljung-Box")
