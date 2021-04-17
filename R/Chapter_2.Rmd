@@ -1,9 +1,16 @@
 ---
-title: "Chapter 2"
+title: "Chapter 2 - Linear Time Series Analysis and Its Applications"
 output:
   html_document: default
   pdf_document: default
 ---
+
+
+In this series we are trying to reproduce the models and examples listed in the book "Analysis of Financial Time Series, 3rd Edition", by Ruey S. Tsay, using Stan <https://mc-stan.org/> and the package RStan <https://cran.r-project.org/web/packages/rstan/index.html>. The main repository for the presented models and data can be found at <https://github.com/marcomarconi/AFTS_with_Stan>.
+
+
+Most of the models listed in chapter 2 were already translated into Stan as part of the official documentation and can be found at <https://mc-stan.org/docs/2_26/stan-users-guide/time-series-chapter.html>. Still, we will go through them in the current document.
+
 
 ```{r setup, include=FALSE,echo=FALSE}
 require(knitr)
@@ -16,9 +23,8 @@ read_chunk('Chapter_2.R')
 ```
 
 
-Most of the models listed in chapter 2 were already translated into Stan as part of the official documentation and can be found at <https://mc-stan.org/docs/2_26/stan-users-guide/time-series-chapter.html>. Still, we will go through them in the current document.
 
-## SIMPLE AR MODELS
+### SIMPLE AR MODELS
 
 The typical AR(K) model can be coded in Stan as follow:
 
@@ -67,7 +73,7 @@ For example, we can compare the previous AR(3) mode with a simpler AR(1) model:
 
 As it can be seen, the difference is negligible. We will keep using loo for model comparison along this presentation.
 
-## REGRESSION MODELS WITH TIME SERIES ERRORS
+### REGRESSION MODELS WITH TIME SERIES ERRORS
 
 
 Consider the common linear regression model:
