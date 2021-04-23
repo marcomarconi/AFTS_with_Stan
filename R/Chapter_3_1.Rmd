@@ -1,0 +1,70 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+In this series we are trying to reproduce the models and examples listed in the book "Analysis of Financial Time Series, 3rd Edition", by Ruey S. Tsay, using Stan <https://mc-stan.org/> and the package RStan <https://cran.r-project.org/web/packages/rstan/index.html>. The main repository for the presented models and data can be found at <https://github.com/marcomarconi/AFTS_with_Stan>.
+
+
+Most of the models listed in chapter 3 were already translated into Stan as part of the official documentation and can be found at <https://mc-stan.org/docs/2_26/stan-users-guide/time-series-chapter.html>. Still, we will go through them in the current document.
+
+
+```{r setup, include=FALSE,echo=FALSE}
+require(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+read_chunk('common.R')
+read_chunk('Chapter_3.R')
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+
+```
+
+```{r load_packages,   message=FALSE}
+```
+
+
+
+### The ARCH Model
+
+The typical ARCH(K) model can be coded in Stan as follow:
+
+```{stan code=readLines("../models/Chapter_3/ARCH.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+```
+
+We will show the ARCH model on the monthly log returns of Intel stock:
+
+```{r load_intel}
+```
+
+We will fit both an ARCH(3) and an ARCH(1) model to the data:
+
+```{r fit_ARCH_normal}
+```
+
+It can be seen that the parameter estimation are in reasonable accordance with the results obtained in book with the maximum likelihhod approach.
+
+We further perform some model checking by testing the independence of the standardized residuals:
+
+```{r plot_ARCH_residuals}
+```
+
+A quick comparison with the loo package show little difference between the ARCH(3) and ARCH(1), as already discussed in the book:
+
+```{r ARCH_compare}
+```
+
+For comparison, we also fit an ARCH(1) model with Student-t innovations to the series:
+
+```{r fit_ARCH_t}
+```
+
+Let's also check the independence assumption for standardized residuals:
+
+```{r plot_ARCH_t_residuals}
+```
+
+The Student-t ARCH(3) seems to perform slightly between in comparison with the normal ARCH(3) model, however, it must be kept in mind that with this kind of analysis we are allowing data from the future to influence the current estimations, and therefore the result from loo will likely over-estimate the difference between models:
+
+```{r ARCH_t_compare}
+```
