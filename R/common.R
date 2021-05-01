@@ -3,11 +3,12 @@
 ## @knitr load_packages
 require(tidyverse)
 require(rstan)
-require(ggplot2)
 require(bayesplot)
 require(loo)
 require(LaplacesDemon)
 library(xts)
+library(quantmod)
+library(FKF)
 rstan_options(auto_write = TRUE)
 rstan_options(javascript = FALSE)
 theme_set(theme_classic(base_size = 24))
