@@ -6,7 +6,7 @@ output:
 ---
 
 
-In this post we want to replicate the example shown at page 76 of Machine Tranding, by Ernest Chan. Chan shows how to apply a state spàce model to two (possibly) conintegrating time series (the ETFs EWC and EWA, in the example). The kind of SSM used by Chan is also known as dynamic linear regression in "Dynamic Linear Models with R" by Petris et al. See also <https://nwfsc-timeseries.github.io/atsa-labs/sec-dlm-overview.html> for an approach with the MARSS package.
+In this post we want to replicate the example shown at page 76 of Machine Tranding, by Ernest Chan. Chan shows how to apply a state spàce model to two (possibly) conintegrating time series (the ETFs EWC and EWA, in the example). The kind of SSM used by Chan is also known as dynamic linear regression in "Dynamic Linear Models with R" by Petris et al. See also <https://nwfsc-timeseries.github.io/atsa-labs/sec-dlm-overview.html> for an approach with the MARSS package. \
 The rationale of this type of stragety arises by observing the relationship between the two time series:
 
 ```{r setup, include=FALSE,echo=FALSE}
@@ -30,7 +30,7 @@ It is clear that the two prices display a strong linear relationship. We can the
 ```{r fit_lm_series}
 ```
 
-The residuals display the same behaviour of a common stationary time series. We could simply apply one of the Box-Jenkins models to exploit this behaviour, but in this example we are instead try to fit a dynamic linear model (DLM) to the data.
+The residuals display the same behaviour of a common stationary time series. We could simply apply one of the Box-Jenkins models to exploit this behaviour, but in this example we are instead try to fit a dynamic linear model (DLM) to the data.  \
 The model used by Chan is the following:
 
 
@@ -42,7 +42,7 @@ $$
 y_t = [x_t,1] * [beta_0 \quad beta_1]_t' + \epsilon_t \\
 [beta_0 \quad beta_1]_t' = [beta_0 \quad beta_1]_{t-1}' + \eta_t
 $$
-Where  _\epsilon~t~_ and  _\eta~t~_ are white noise. Note that beta is simply a time-varying vector containing the hedge ratio and the constant offset between the two time series.
+Note that beta is simply a time-varying vector containing the hedge ratio and the constant offset between the two time series.  \
 The model can be coded in Stan as follow:
 
 ```{stan code=readLines("../models/EpChan/SSM_beta.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
@@ -64,9 +64,9 @@ We can now apply the Kalman Filter to the whole dataset to get filtered estimate
 ```{r kalman}
 ```
 
-The fitted lines are very similar to the ones obtained by Chan.
+The fitted lines are very similar to the ones obtained by Chan.  \
 The trading stategy applied by Chan is a typical statistical arbitrage mean-reversion: "buy EWC(y) if we find that the observed
-value of y is smaller than the forecasted value by more than the forecasted standard deviation of the observations, while simultaneously shorting EWA".
+value of y is smaller than the forecasted value by more than the forecasted standard deviation of the observations, while simultaneously shorting EWA".  \
 We can notice by plotting to forecast errors against the forecasted standard deviation that, differently from Chan, we don't have so many trades:
 
 ```{r plot_trades}

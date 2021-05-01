@@ -1,4 +1,11 @@
-source('common.R')
+## @knitr load_packages
+require(tidyverse)
+require(rstan)
+library(xts)
+library(quantmod)
+library(FKF)
+rstan_options(auto_write = TRUE)
+rstan_options(javascript = FALSE)
 
 
 ## @knitr load_series
