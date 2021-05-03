@@ -126,8 +126,8 @@ ret <- pnl / rowSums(abs(lag(positions, 1)), na.rm = TRUE);
 ret[is.infinite(ret)] <- 0
 ret[is.nan(ret)] <- 0
 par(mfrow=c(1,2))
-plot(index(EWC)[trainset], (cumprod(1+ret[trainset])-1),ylab="Forecast error", xlab="Date", type="l")
-plot(index(EWC)[testset], (cumprod(1+ret[testset])-1), ylab="Forecast error", xlab="Date", type="l")
+plot(index(EWC)[trainset], (cumprod(1+ret[trainset])-1),ylab="Cumulative Returns", xlab="Date", type="l")
+plot(index(EWC)[testset], (cumprod(1+ret[testset])-1), ylab="Cumulative Returns", xlab="Date", type="l")
 
 
 
