@@ -53,28 +53,51 @@ Let's fit it to the data to the trainset (the first 1250 observations):
 ```{r fit_stan_series}
 ```
 
-Stan will have a quite hard time to fit this model, so it would better to impose stronger priors (any suggestions?) or simplify the model by setting the correlation to zero. Still, estimations are close to Chan's:
+Stan will have a quite hard time to fit this model, as these kind of model have strong identifibility issues. Still, estimations are close to Chan's:
 
 ```{r print_stan_series}
 ```
 
-
 We can now apply the Kalman Filter to the whole dataset to get filtered estimates for the hedge ratio and offset. We can use the FKF package to do the job (or you can write the Kalman filter yourself):
 
-```{r kalman}
+```{r kalman_stan}
 ```
 
-The fitted lines are very similar to the ones obtained by Chan.  \
+The fitted lines are very similar to the ones obtained by Chan.  \ \ 
+
+We can improve fitting by re-implementing the previous naive version by including the Kalman Filter inside the Stan model:
+
+```{stan code=readLines("../models/EpChan/SSM_beta_KF.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+```
+
+Sampling from this model is faster and usually does not results in any divergence or maximum depth warnings:
+
+```{r fit_stan_kf_series}
+```
+
+Nonetheless, as you can see I was unable to get estimates similar to Chan's (any suggestion how to improve this?). \
+Therefore, we will instead proceed by fitting the data with the great MARSS package <https://cran.r-project.org/web/packages/MARSS/vignettes/UserGuide.pdf>:
+
+```{r fit_MARSS_series}
+```
+
+As it can be seen, now the estimates are much closer to Chan's. \
+Let's filter the time series again with the new estimates:
+
+```{r kalman_MARSS}
+```
+
+Again, very similar to the ones showed in the book. \
 The trading stategy applied by Chan is a typical statistical arbitrage mean-reversion: "buy EWC(y) if we find that the observed
 value of y is smaller than the forecasted value by more than the forecasted standard deviation of the observations, while simultaneously shorting EWA".  \
-We can notice by plotting to forecast errors against the forecasted standard deviation that, differently from Chan, we don't have so many trades:
+We can notice by plotting to forecast errors against the forecasted standard deviation:
 
 ```{r plot_trades}
 ```
 
-I decided to use the the variance instead for demonstrating purposes, just to increase the number of trades. The determination of the actual positions of EWC and EWA are the same as in Chan (2013), and in the current code I am following the MATLAB codes can be downloaded from <https://www.epchan.com/book3/> as SSM_beta_EWA_EWC.m.
+The determination of the actual positions of EWC and EWA are the same as in Chan (2013), and in the current code I am following the MATLAB codes can be downloaded from <https://www.epchan.com/book3/> as SSM_beta_EWA_EWC.m.
 
 ```{r plot_cumret}
 ```
 
-As it can be observed, the strategy does not perform well out-of-sample. Chan states that this could be attributes to overfitting the noise covariance matrix.
+As it can be observed, the strategy does not perform well out-of-sample. According to Chan, that this could be attributes to overfitting the noise covariance matrix.
