@@ -7,8 +7,8 @@ plot(intel)
 
 ## @knitr fit_ARCH_normal
 ARCH <- stan_model("models/Chapter_3/ARCH.stan")
-fit_intel_3 <- sampling(ARCH, data = list(N = length(intel), y = intel %>% as.vector(), Kar = 3, family = 0), chains = 1, refresh=0)
-fit_intel_1 <- sampling(ARCH, data = list(N = length(intel), y = intel %>% as.vector(), Kar = 1, family = 0), chains = 1, refresh=0)
+fit_intel_3 <- sampling(ARCH, data = list(N = length(intel), y = intel %>% as.vector(), Kar = 3, family = 0), chains = 4, refresh=0)
+fit_intel_1 <- sampling(ARCH, data = list(N = length(intel), y = intel %>% as.vector(), Kar = 1, family = 0), chains = 4, refresh=0)
 print(fit_intel_3, pars=names(fit_intel_3)[1:5])
 print(fit_intel_1, pars=names(fit_intel_1)[1:3])
 
@@ -21,11 +21,15 @@ plot(residuals)
 Box.test(residuals, lag=10, type="Ljung-Box")
 
 ## @knitr ARCH_compare
-loo_compare(loo(fit_intel_3), loo(fit_intel_1))
+a <- extract_log_lik(fit_intel_3, merge_chains = FALSE)[,,4:(length(intel))]
+b <- extract_log_lik(fit_intel_1, merge_chains = FALSE)[,,4:(length(intel))]
+r_eff_a <- relative_eff(exp(a))
+r_eff_b <- relative_eff(exp(b))
+loo_compare(loo(a, r_eff = r_eff_a, moment_match = TRUE), loo(b, r_eff = r_eff_b, moment_match = TRUE))
 
 
 ## @knitr fit_ARCH_t
-fit_intel_3_t <- sampling(ARCH, data = list(N = length(intel), y = intel %>% as.vector(), Kar = 3, family = 1), chains = 1, refresh=0)
+fit_intel_3_t <- sampling(ARCH, data = list(N = length(intel), y = intel %>% as.vector(), Kar = 3, family = 1), chains = 4, refresh=0)
 print(fit_intel_3_t, pars=names(fit_intel_3_t)[1:5])
 
 ## @knitr plot_ARCH_t_residuals
@@ -36,7 +40,11 @@ plot(residuals)
 Box.test(residuals, lag=12, type="Ljung-Box")
 
 ## @knitr ARCH_t_compare
-loo_compare(loo(fit_intel_3), loo(fit_intel_3_t))
+a <- extract_log_lik(fit_intel_3, merge_chains = FALSE)[,,4:(length(intel))]
+b <- extract_log_lik(fit_intel_3_t, merge_chains = FALSE)[,,4:(length(intel))]
+r_eff_a <- relative_eff(exp(a))
+r_eff_b <- relative_eff(exp(b))
+loo_compare(loo(a, r_eff = r_eff_a, moment_match = TRUE), loo(b, r_eff = r_eff_b, moment_match = TRUE))
 
 
 ## @knitr plot_S&P500
@@ -48,13 +56,18 @@ Pacf(sp500)
 ## @knitr fit_GARCH_sp500
 GARCH <- stan_model("models/Chapter_3/GARCH.stan")
 ARGARCH <- stan_model("models/Chapter_3/AR-GARCH.stan")
-fit_garch_sp500 <- sampling(GARCH, data = list(N = length(sp500), y = sp500, K = 1, sigma1 = sd(sp500)), chains = 1, refresh=0)
-fit_argarch_sp500 <- sampling(ARGARCH, data = list(N = length(sp500), y = sp500, K = 3), chains = 1, refresh=0)
+fit_garch_sp500 <- sampling(GARCH, data = list(N = length(sp500), y = sp500, K = 1, sigma1 = sd(sp500)), chains = 4, refresh=0)
+fit_argarch_sp500 <- sampling(ARGARCH, data = list(N = length(sp500), y = sp500, K = 3), chains = 4, refresh=0)
 print(fit_garch_sp500, pars=names(fit_garch_sp500)[1:4], digits=5)
 print(fit_argarch_sp500, pars=names(fit_argarch_sp500)[1:8], digits=5)
 
 ## @knitr loo_GARCH_sp500
-loo_compare(loo(fit_garch_sp500), loo(fit_argarch_sp500))
+a <- extract_log_lik(fit_garch_sp500, merge_chains = FALSE)[,,4:(length(sp500))]
+b <- extract_log_lik(fit_argarch_sp500, merge_chains = FALSE)[,,4:(length(sp500))]
+r_eff_a <- relative_eff(exp(a))
+r_eff_b <- relative_eff(exp(b))
+loo_compare(loo(a, r_eff = r_eff_a, moment_match = TRUE), loo(b, r_eff = r_eff_b, moment_match = TRUE))
+
 
 ## @knitr plot_GARCH_sigma_sp500
 extract(fit_garch_sp500, pars="sigma")[[1]] %>% colMeans()  %>% plot(type="l")
@@ -77,11 +90,15 @@ loo_compare(loo(fit_argarch_ibm2, moment_match = TRUE), loo(fit_argarch_I_ibm2, 
 
 ## @knitr fit_SP_garch_x
 GARCH <- stan_model("models/Chapter_3/GARCH.stan")
-fit_garch_sp500 <- sampling(GARCH , data=list(N = length(ibm_sp500$sp), y = ibm_sp500$sp, K = 2, sigma1=sd(ibm_sp500$sp)), chains = 1, refresh=0)
+fit_garch_sp500 <- sampling(GARCH , data=list(N = length(ibm_sp500$sp), y = ibm_sp500$sp, K = 2, sigma1=sd(ibm_sp500$sp)), chains = 4, refresh=0)
 GARCH_x <- stan_model("models/Chapter_3/GARCH_x.stan")
-fit_garch_x_sp500 <- sampling(GARCH_x , data=list(N = length(ibm_sp500$sp), y = ibm_sp500$sp, x=ibm_sp500$ibm, K = 2), chains = 1, refresh=0)
+fit_garch_x_sp500 <- sampling(GARCH_x , data=list(N = length(ibm_sp500$sp), y = ibm_sp500$sp, x=ibm_sp500$ibm, K = 2), chains = 4, refresh=0)
 
 
 ## @knitr compare_SP_garch_x
 print(fit_garch_x_sp500, pars=names(fit_garch_x_sp500)[1:6])
-loo_compare(loo(fit_garch_sp500, moment_match = TRUE), loo(fit_garch_x_sp500, moment_match = TRUE))
+a <- extract_log_lik(fit_garch_sp500, merge_chains = FALSE)[,,4:(nrow(ibm_sp500))]
+b <- extract_log_lik(fit_garch_x_sp500, merge_chains = FALSE)[,,4:(nrow(ibm_sp500))]
+r_eff_a <- relative_eff(exp(a))
+r_eff_b <- relative_eff(exp(b))
+loo_compare(loo(a, r_eff = r_eff_a, moment_match = TRUE), loo(b, r_eff = r_eff_b, moment_match = TRUE))

@@ -142,7 +142,7 @@ We fit the AR-GAS model to the unemployement insurance claims data (as in the ex
 There will be a few divergences, better priors would probably fix that.
 We can see the time-varying effect of the AR component:
 
-```{r  plot_AR_GAS, fig.keep = 'last', fig.height=7}
+```{r  plot_AR_GAS}
 
 ```
 

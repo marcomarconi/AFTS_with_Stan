@@ -1,7 +1,7 @@
 source('common.R')
 
 ## @knitr init_stan
-AR_model <- stan_model("../models/AR.stan")
+AR_model <- stan_model("models/Chapter_2/AR.stan")
 
 ## @knitr plot_gnp
 
@@ -44,7 +44,11 @@ ggplot(data.frame(gnp1=gnp1)) + geom_line(aes(x=1:length(gnp1), y=gnp1)) + geom_
 ## @knitr AR_loo_compare
 
 AR1_gnp <- sampling(AR_model, data=list(N=length(gnp1), y=gnp1, K=1), chains=4, cores=4)
-loo_compare(loo(AR_gnp), loo(AR1_gnp))
+a <- extract_log_lik(AR_gnp, merge_chains = FALSE)[,,4:(length(gnp1))]
+b <- extract_log_lik(AR1_gnp, merge_chains = FALSE)[,,4:(length(gnp1))]
+r_eff_a <- relative_eff(exp(a))
+r_eff_b <- relative_eff(exp(b))
+loo_compare(loo(a, r_eff = r_eff_a), loo(b, r_eff = r_eff_b))
 
 ## @knitr fit_AR_GAS
 
