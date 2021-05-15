@@ -67,7 +67,7 @@ Forecasting can be iteratively starting from the last known value (see pag. 56 f
 We can also compare model using the loo package. This kind of model checking is probably not correct for time series if our scope is to assess out-of-sample model prediction as we are including data from the future when performing approximate LOO cross validation. A better solution would to use leave-future-out cross-validation (LFO-CV), see <https://mc-stan.org/loo/articles/loo2-lfo.html>. However, if we are simply interested in evaluation different models ability to learn the relevant structures of the data, loo can be used for model selection, which is still better than the typical AIC used in the book.
 For example, we can compare the previous AR(3) mode with a simpler AR(1) model:
 
-```{r  AR_loo_compare, echo=FALSE}
+```{r  AR_loo_compare}
 ```
 
 As it can be seen, the difference is negligible. We will keep using loo for model comparison along this presentation.
