@@ -1,0 +1,127 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+In this series we are trying to reproduce the models and examples listed in the book "Analysis of Financial Time Series, 3rd Edition", by Ruey S. Tsay, using Stan <https://mc-stan.org/> and the package RStan <https://cran.r-project.org/web/packages/rstan/index.html>. The main repository for the presented models and data can be found at <https://github.com/marcomarconi/AFTS_with_Stan>.
+
+Most of the models listed in chapter 3 were already translated into Stan as part of the official documentation and can be found at <https://mc-stan.org/docs/2_26/stan-users-guide/time-series-chapter.html>. Still, we will go through them in the current document.
+
+```{r setup, include=FALSE,echo=FALSE}
+require(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+read_chunk('common.R')
+read_chunk('Chapter_3.R')
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+
+```
+
+```{r load_packages,   message=FALSE}
+```
+
+## The GARCH Model
+
+The typical GARCH(1,1) model can be coded in Stan as described in <https://mc-stan.org/docs/2_26/stan-users-guide/modeling-temporal-heteroscedasticity.html>.
+
+We are going to fit this model and its extension AR(3)-GARCH(1) to the S&P500 data:
+
+```{r plot_S&P500}
+
+```
+
+A GARCH(K,K) model can be coded in Stan as follow:
+
+```{stan code=readLines("../models/Chapter_3/GARCH.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+While a AR(K)-GARCH(1,1) model can be coded in Stan as follow:
+
+```{stan code=readLines("../models/Chapter_3/AR-GARCH.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+Let's fit both models to the data and check the estimated parameters:
+
+```{r fit_GARCH_sp500, message=FALSE, warning=FALSE}
+
+```
+
+Both models produce estimations that are in close agreement with the ones shown in the book.
+
+In the book, the simpler GARCH(1,1) is preferred over the AR(3)-GARCH(1,1) because the AR coefficient of the latter are close to zero and deemed not significant. Let's see what we get by comparing the two models with loo:
+
+```{r loo_GARCH_sp500}
+```
+
+We can see that there is little difference between the two models, and therefore the simpler model should be preferred.
+
+We can finally have a look at the estimated volatility from the GARCH(1,1) model:
+
+```{r plot_GARCH_sigma_sp500}
+```
+
+The book goes on by showing alternative extensions of the GARCH model, namely: I-GARCH, GARCH-M, E-GARCH, T-GARCH and CHARMA. We are reviewing them in detail, but you can find the Stan code in the github folder.
+
+### Example 3.4
+
+The example addresses the question on whether the daily volatility of a stock is lower in the summer and, if so, by how much. We will the IBM data:
+
+```{r plot_IBM}
+```
+
+Let's fit a simple AR(1)-GARCH(1,1) model first, we will use it later:
+
+```{r fit_IBM_garch, message=FALSE, warning=FALSE}
+```
+
+To study the summer effect on stock volatility of an asset, we define an indicator variable "u" which takes the value 1 if the month is June, July or August, and 0 otherwise. We will the mode described in equation (3.45) in the book which imposes the constraint that the constant term of the volatility equation is zero for the summer months:
+
+$$
+\sigma^2_t = \alpha_1\alpha^2_{t-1} + \beta_1\sigma^2_{t-1} + \gamma(1 - u_t)
+$$
+
+Here is the code in Stan:
+
+```{stan code=readLines("../models/Chapter_3/AR-GARCH-I.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+Let's fit it to the data:
+
+```{r fit_IBM_garch_I, message=FALSE, warning=FALSE}
+```
+
+You can clearly see that the gamma parameter is significantly different from zero.
+
+We can compare the last model with the simple AR(1)-GARCH(1,1):
+
+```{r loo_IBM}
+```
+
+### Example 3.5
+
+The question we ask in this example is whether the past returns of individual components of the index S&P 500 contribute to the modeling of the S&P 500 index volatility in the presence of its own returns. The IBM stock will be used as explanatory variable:
+
+$$
+ \sigma^2_t = \alpha_0 +  \alpha_1\alpha^2_{t-1} + \alpha_2\alpha^2_{t-2} + \beta_1\sigma^2_{t-1} + \gamma(x_{t-1} - \bar{x})^2
+$$
+
+Let's have a look at the Stan code:
+
+```{stan code=readLines("../models/Chapter_3/GARCH_x.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+and fit it to the data, together with a simple GARCH(2,1) model:
+
+```{r fit_SP_garch_x, message=FALSE, warning=FALSE}
+
+```
+
+Contrary to the book (which estimate a gamma = 0.007±0.0039) the gamma parameters is no different from zero and the two models performs pretty similar:
+
+```{r compare_SP_garch_x}
+
+```
