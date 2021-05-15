@@ -1,11 +1,8 @@
-// this is a frankenstein between SNAN manual AR and GARCH
-
 data {
   int<lower=0> N;
   vector[N] y;
-  int Kar;
-  int<lower=0> M; 
-  vector[M] m; // for PSIS-LOO-LFO
+  int K;
+
 }
 parameters {
   real<lower=0> alpha0;
@@ -13,7 +10,7 @@ parameters {
   real<lower=0,upper=(1-alpha1)> beta1;
   real<lower=0> sigma1;
   real ar0;
-  vector[Kar] ar;
+  vector[K] ar;
   
 }
 transformed parameters {
@@ -31,37 +28,29 @@ model {
   sigma1 ~ cauchy(0, 1);
   ar0 ~ normal(0, 1);
   ar ~ normal(0, 1);
-  for (n in (Kar+1):N) {
+  for (n in (K+1):N) {
     real mu = ar0;
-    for (k in 1:Kar)
+    for (k in 1:K)
       mu += ar[k] * y[n-k];
     y[n] ~ normal(mu, sigma[n]);    
   }
   
 }
 generated quantities {
-  vector[N+M] log_lik;
+  vector[N] log_lik;  
   {
-    vector[M+N] z = append_row(y, m);
-    vector[M+N] sigma_hat;
     real log_lik_mu = 0;
-
-    for (t in 1:Kar) 
-      sigma_hat[t] = sigma[t];
-    for (t in (Kar+1):(N+M)) {
-      real mu_hat = ar0;
-      sigma_hat[t] = sqrt(alpha0
-                    + alpha1 * pow(z[t-1] - ar0, 2)
-                    + beta1 * pow(sigma_hat[t-1], 2));
-      ;
-      for (k in 1:Kar)
-        mu_hat += ar[k] * z[t-k];
-      log_lik[t] = normal_lpdf(z[t] | mu_hat, sigma_hat[t]);  
+    for (t in 1:K)
+      log_lik[t] = normal_lpdf(y[t] | ar0 / (1 - sum(ar)), sigma[t]);  
+    for (t in (K+1):N) {
+      real mu = ar0;
+      for (k in 1:K)
+        mu += ar[k] * y[t-k];
+      log_lik[t] = normal_lpdf(y[t] | mu, sigma[t]);  
       log_lik_mu += log_lik[t];
     }       
-    log_lik_mu /= M+N-(Kar+1);
-    for (t in 1:Kar) 
-      log_lik[t] = log_lik_mu;    
-    
+    log_lik_mu /= N-(K+1);
+    for (t in 1:K) 
+      log_lik[t] = log_lik_mu;
   }
 }

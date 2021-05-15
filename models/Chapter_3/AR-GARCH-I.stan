@@ -1,10 +1,8 @@
-// this is a frankenstein between STAN manual AR and GARCH
-
 data {
-  int<lower=0> T;
-  real r[T];
-  int u[T];
-  int ar_order;
+  int<lower=0> N;
+  real y[N];
+  int u[N];
+  int K;
 }
 parameters {
   real<lower=0,upper=1> alpha1;
@@ -12,14 +10,14 @@ parameters {
   real<lower=0> sigma1;
   real gamma;
   real ar0;
-  vector[ar_order] ar;
+  vector[K] ar;
 }
 transformed parameters {
-  real<lower=0> sigma[T];
+  real<lower=0> sigma[N];
   sigma[1] = sigma1;
-  for (t in 2:T)
+  for (t in 2:N)
     sigma[t] = sqrt(
-                    alpha1 * pow(r[t-1] - ar0, 2)
+                    alpha1 * pow(y[t-1] - ar0, 2)
                     + beta1 * pow(sigma[t-1], 2)
                     + gamma * (1 - u[t])
 
@@ -31,26 +29,29 @@ model {
   sigma1 ~ cauchy(0, 1);
   ar0 ~ normal(0, 1);
   ar ~ normal(0, 1);
-  for (n in (ar_order+1):T) {
+  for (n in (K+1):N) {
     real mu = ar0;
-    for (k in 1:ar_order)
-      mu += ar[k] * r[n-k];
-    r[n] ~ normal(mu, sigma[n]);    
+    for (k in 1:K)
+      mu += ar[k] * y[n-k];
+    y[n] ~ normal(mu, sigma[n]);    
   }
   
 }
 generated quantities {
-  vector[T-ar_order] r_hat;
-  vector[T-ar_order] log_lik;
-  // for (n in 1:ar_order) {
-  //   r_hat[n] = normal_rng(ar0, alpha0);
-  //   log_lik[n] = normal_lpdf(r[n] | ar0, alpha0);
-  // }
-  for (n in (ar_order+1):T) {
-    real mu = ar0;
-    for (k in 1:ar_order)
-      mu += ar[k] * r[n-k];
-    r_hat[n-ar_order] = normal_rng(mu, sigma[n]);
-    log_lik[n-ar_order] = normal_lpdf(r[n] | mu, sigma[n]);
+  vector[N] log_lik;  
+  {
+    real log_lik_mu = 0;
+    for (t in 1:K)
+      log_lik[t] = normal_lpdf(y[t] | ar0 / (1 - sum(ar)), sigma[t]);  
+    for (t in (K+1):N) {
+      real mu = ar0;
+      for (k in 1:K)
+        mu += ar[k] * y[t-k];
+      log_lik[t] = normal_lpdf(y[t] | mu, sigma[t]);  
+      log_lik_mu += log_lik[t];
+    }       
+    log_lik_mu /= N-(K+1);
+    for (t in 1:K) 
+      log_lik[t] = log_lik_mu;
   }
 }

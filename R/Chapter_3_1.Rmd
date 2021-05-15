@@ -4,12 +4,9 @@ output:
   pdf_document: default
 ---
 
-
 In this series we are trying to reproduce the models and examples listed in the book "Analysis of Financial Time Series, 3rd Edition", by Ruey S. Tsay, using Stan <https://mc-stan.org/> and the package RStan <https://cran.r-project.org/web/packages/rstan/index.html>. The main repository for the presented models and data can be found at <https://github.com/marcomarconi/AFTS_with_Stan>.
 
-
 Most of the models listed in chapter 3 were already translated into Stan as part of the official documentation and can be found at <https://mc-stan.org/docs/2_26/stan-users-guide/time-series-chapter.html>. Still, we will go through them in the current document.
-
 
 ```{r setup, include=FALSE,echo=FALSE}
 require(knitr)
@@ -22,8 +19,6 @@ knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 
 ```{r load_packages,   message=FALSE}
 ```
-
-
 
 ### The ARCH Model
 

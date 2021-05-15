@@ -25,10 +25,10 @@ model {
     r[t] ~ normal(mu + premium*pow(sigma[t], 2) , sigma[t]);
 }
 generated quantities {
-  vector[T-1] r_hat;
-  vector[T-1] log_lik;
-  for (t in 1:(T-1)) {
-      r_hat[t] = normal_rng(mu + premium*pow(sigma[t], 2), sigma[t]);
-      log_lik[t] = normal_lpdf(r[t] | mu + premium*pow(sigma[t], 2), sigma[t]);
-  }
+    vector[T] log_lik;
+   {
+     for (t in 1:T) 
+       log_lik[t] = normal_lpdf(r[t] | mu, sigma[t] );
+     
+   }
 }
