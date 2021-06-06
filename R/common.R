@@ -12,6 +12,8 @@
   library(FKF)
   library(MARSS)
   library(forecast)
+  library(NTS)
+  
   rstan_options(auto_write = TRUE)
   rstan_options(javascript = FALSE)
   theme_set(theme_classic(base_size = 24))
