@@ -77,7 +77,6 @@ print(fit_VARMA, pars=c("mu", "phi", "theta", "Sigma", "Omega", "tau"))
 err <- extract(fit_VARMA, pars=c("err"))[[1]] %>% colMeans()
 colnames(err) <- c("1-year", "3-year")
 plot.ts(err[-1,], main="Residuals", cex.axis=1.5, cex.lab=1.5, xlab="")
-LjungBox(err[-1,], lags = 1:8)
 
 ## @knitr corr_8.6
 Omega <- extract(fit_VARMA, pars=c("Omega"))[[1]] 
@@ -128,7 +127,6 @@ residuals[1:3,] <- 0
 for(t in 4:N)
   residuals[t,] <-  c0 + (alpha %*% (c(1,-beta) %*% r[t-1,])) + phi[,,1] %*% (r[t-1,] - r[t-2,]) + phi[,,2] %*% (r[t-2,] - r[t-3,]) 
 plot.ts(residuals, cex.axis=1.5, cex.lab=1.5, xlab="")
-LjungBox(residuals, lags = 1:8)
 
 ## @knitr cointegration_8.6.5
 r_hat <- matrix(nrow = N, ncol = 2)

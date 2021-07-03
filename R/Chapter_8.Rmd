@@ -13,7 +13,7 @@ output:
 ```
 ```{r setup, include=FALSE,echo=FALSE}
 require(knitr)
-knitr::opts_chunk$set(echo = TRUE,fig.width=12,fig.height=7)
+knitr::opts_chunk$set(echo = TRUE,fig.width=14,fig.height=7)
 read_chunk('common.R')
 read_chunk('Chapter_8.R')
 knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
@@ -71,7 +71,7 @@ We can plot the posterior concurrent correlation:
 ```{r corr_8.4, message=FALSE, warning=FALSE}
 ```
 
-We can check the adequacy of the model by testing the autocorrelation using the multivariate Ljung--Box test:
+We can check the adequacy of the model by testing the autocorrelation using the multivariate Ljung-Box test:
 
 ```{r residuals_8.4, message=FALSE, warning=FALSE}
 ```
