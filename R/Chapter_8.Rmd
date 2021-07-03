@@ -1,0 +1,209 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{=html}
+<style type="text/css">
+  body{
+  font-size: 12pt;
+}
+</style>
+```
+```{r setup, include=FALSE,echo=FALSE}
+require(knitr)
+knitr::opts_chunk$set(echo = TRUE,fig.width=12,fig.height=7)
+read_chunk('common.R')
+read_chunk('Chapter_8.R')
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+
+```
+
+![](images/plot_8.8.png){width="700"}
+
+In this series we are trying to reproduce the models and examples listed in the book "Analysis of Financial Time Series, 3rd Edition", by Ruey S. Tsay, using Stan <https://mc-stan.org/> and the package RStan <https://cran.r-project.org/web/packages/rstan/index.html>. The main repository for the presented models and data can be found at <https://github.com/marcomarconi/AFTS_with_Stan>.
+
+```{r load_packages,   message=FALSE}
+```
+
+## 8.2 VECTOR AUTOREGRESSIVE MODELS
+
+Vector autoregressive models are the multivariate version of AR processes, a VAR(1) is defined as follows:
+
+$$ r_t = \phi_0 + \Phi r_{t-1} + a_{t} $$ where $\phi_0$ is a k-dimensional vector, $\Phi$ is a k × k matrix, and {$a_t$} is a sequence of serially uncorrelated random vectors with mean zero and covariance matrix $\Sigma$. In application, the covariance matrix $\Sigma$ is required to be positive definite. Notice that $\Phi$ contains the lagged effect of each series on the other, while the concurrent effect between the series (that is, the simultaneous effect at lag 0) is implicitly contained in the covariance matrix $\Sigma$. For this reason, this type of VAR model is named "reduced-norm". In time series analysis this form is preferred over the one where the concurrent relationship is explicitly state for easiness of estimation and also because concurrent correlations cannot really be used in forecasting. Notice also that the innovations $a_t$ are uncorrelated with past values of $r_t$, simply because $a_t$ is not serially correlated. The requirements for a VAR(1) process to be stationary is that the eigenvalues of $\Phi$ are less than 1 in modulus. The VAR(p) model can be naively coded in Stan as follows:
+
+```{stan code=readLines("../models/Chapter_8/VAR.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+This naive implementation is however very slow. We could instead take advantage of QR decomposition described in the manual <https://mc-stan.org/docs/2_27/stan-users-guide/QR-reparameterization-section.html>. This produces a much faster sampling.\
+The VAR(p) model with QR decomposition is as follows:
+
+```{stan code=readLines("../models/Chapter_8/VAR_QR.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+```
+
+### Example 8.4.
+
+Take the bivariate series of monthly log returns of IBM stock and the S&P 500 index:
+
+```{r load_8.4, message=FALSE, warning=FALSE}
+```
+
+We are going yo fit a VAR(5) model to the bivariate series:
+
+``` {.R}
+VAR_QR <- stan_model("models/Chapter_8/VAR_QR.stan")
+r <-  ibmsp2608[,2:3]
+fit_VAR_QR <- sampling(VAR_QR, data = list(N=nrow(r), K=ncol(r), y=r, p=5, ncol=2), chains = 4, cores = 4, iter=500)
+```
+
+```{r fit_8.4, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+```{r print_8.4, message=FALSE, warning=FALSE}
+```
+
+The estimated parameters are very similar to Tsay's full model of TABLE 8.4.\
+There is a unidirectional dynamic relationship from the monthly S&P 500 index return to the IBM return. IBM returns are affected by the past movements of the S&P 500 index However, past movements of IBM stock returns do not significantly affect the S&P 500 index, even though the two returns have substantial concurrent correlation.\
+We can plot the posterior concurrent correlation:
+
+```{r corr_8.4, message=FALSE, warning=FALSE}
+```
+
+We can check the adequacy of the model by testing the autocorrelation using the multivariate Ljung--Box test:
+
+```{r residuals_8.4, message=FALSE, warning=FALSE}
+```
+
+## 8.3 VECTOR MOVING-AVERAGE MODELS
+
+Vector moving-average models are the multivariate version of MA processes, a VMA(1) is defined as follows:
+
+$$ r_t = \theta_0 + \Theta a_{t-1} + a_{t} $$
+
+where $\theta_0$ is a k-dimensional vector, $\Theta$ is a k × k matrix, and {$a_t$} is a sequence of serially uncorrelated random vectors with mean zero and covariance matrix $\Sigma$. It is required that the covariance matrix $\Sigma$ exists. The VMA(p) model can be naively coded in Stan as follows:
+
+```{stan code=readLines("../models/Chapter_8/VMA.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+We will fit to the same data as the VAR model before:
+
+``` {.R}
+VMA <- stan_model("models/Chapter_8/VMA.stan")
+r <-  ibmsp2608[,2:3]
+fit_VMA <- sampling(VMA, data = list(N=nrow(r), K=ncol(r), y=r, p=5), chains = 4, cores = 4, iter=500, init=0)
+```
+
+```{r fit_8.5, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+```{r print_8.5, message=FALSE, warning=FALSE}
+```
+
+The estimates are similar to Tsay's in TABLE 8.6, except that all Theta's signs are inverted! I am not quite sure about the reason.
+
+## 8.4 VECTOR ARMA MODELS
+
+Vector arma models are the multivariate version of ARMA processes, a VARMA(1,1) is defined as follows:
+
+$$ r_t = \phi_0 + \Phi r_{t-1} + \Theta a_{t-1} + a_{t} $$
+
+where $\phi_0$ is a k-dimensional vector, $\Phi$ and $\Theta$ are k × k matrices, and {$a_t$} is a sequence of serially uncorrelated random vectors with mean zero and covariance matrix $\Sigma$. It is required that the covariance matrix $\Sigma$ exists.   The VARMA(1,1) model can be naively coded in Stan as follows:
+
+```{stan code=readLines("../models/Chapter_8/VARMA.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+```
+
+However, we can instead use a reparametrized form where we decompose the covariance matrix $\Sigma$ into a diagonal matrix of the conditional standard deviations and a conditional correlation matrix:
+
+```{stan code=readLines("../models/Chapter_8/VARMA_reparametrized.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+```
+
+We are going to apply the VARMA model to two U.S. monthly interest rate series from April 1953 to January 2001. The first series is the 1-year Treasury constant maturity rate, and the second series is the 3-year Treasury constant maturity rate. There are 574 observations. To ensure the positiveness of U.S. interest rates, we analyze the log series:
+
+```{r plot_8.6, message=FALSE, warning=FALSE}
+```
+
+We will fit the VARMA(1,1) model:
+
+``` {.R}
+VARMA_r <- stan_model("models/Chapter_8/VARMA_reparametrized.stan")
+fit_VARMA <- sampling(VARMA_r, data = list(N=nrow(r), K=2, y=log(r[,c(1,2)])), chains = 4, cores = 4, iter=500, init=0)
+```
+
+```{r fit_8.6, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+```{r print_8.6, message=FALSE, warning=FALSE}
+```
+
+We can check the adequacy of the fitting by looking at the residuals:
+
+```{r residuals_8.6, message=FALSE, warning=FALSE}
+```
+
+The interest rate series are highly contemporaneously correlated. The concurrent correlation coefficient is:
+
+```{r corr_8.6, message=FALSE, warning=FALSE}
+```
+
+## 8.5 UNIT-ROOT NONSTATIONARITY AND COINTEGRATION
+
+Cointegration is a popular econometric concept which could deserve its own dissertation. Cointegration can be obtained by a linear transformation of unit-root nonstationary series, and this linear combination is stationary. Cointegration is necessary to represents long-term relationship between two or more time series. In fact, you might be tempted to model a typical VAR model seem before to produce two long-term related time series:
+
+```{r coint_plot, message=FALSE, warning=FALSE}
+```
+
+You can see, however, that despite a clear correlation between the differences of the time series, the corresponding unit-root non stationary time series diverge pretty quickly. Cointegration ensure the long-term relationship between the two time series along a common trend.\
+Engle and Granger (1987) discuss an error correction representation for a cointegrated system. In this example we are going to implemente the a simple vector error correction model (VECM) using the same formulation as the VECM function of the tsDyn package. It can be coded in Stan as follows:
+
+``` {.R}
+fit_ECM_treasury <- sampling(ECM, data = list(N=nrow(r), K=ncol(r), y=r, P=2), chains = 4, cores = 4, init=0)
+```
+
+Now, we consider two weekly U.S. short-term interest rates. The series are the 3-month Treasury bill (TB) rate and 6-month Treasury bill rate from December 12, 1958, to August 6, 2004, for 2383 observations.
+
+```{r plot_8.6.5, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+We will fit the VECM to this data, and compare it with the result obtained with the tsDyn package:
+
+```{r fit_8.6.5, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+```{r print_8.6.5, message=FALSE, warning=FALSE}
+```
+
+The results are very similar. We can further observe and check the residuals:
+
+```{r residuals_8.6.5, message=FALSE, warning=FALSE}
+```
+
+A further analysis of the cointegrating residuals reveals the time series distance between the two assets:
+
+```{r cointegration_8.6.5, message=FALSE, warning=FALSE}
+```
+
+## 8.8 PAIRS TRADING
+
+We are going to use cointegration to show a simple example of pairs trading. This kind of strategy involves asset that tend to move along a common trend and exploits divergences along the path to sell the overpriced asset and to buy the underpriced. one. The difference between the two observed prices is called the spread. For pairs trading, the greater the spread, the larger the magnitude of mispricing and the greater the profit potential. See Vidyamurthy (2004), Pole (2007), Chan (2013) and <https://hudsonthames.org/arbitragelab/> for more info.\
+To demonstrate pairs trading, Tsay considers two stocks traded on the New York Stock Exchange. The two companies are the Billiton Ltd. of Australia and the Vale S.A. of Brazil with stock symbols BHP and VALE, respectively:
+
+```{r plot_8.8.3, message=FALSE, warning=FALSE}
+```
+
+A simple linear regression already confirms that there is some sort of relationship between the two stocks:
+
+```{r test_8.8.3, message=FALSE, warning=FALSE}
+```
+
+We are going to fit the VECM model and plot the implied spread, together with the 90% compatibility intervals:
+
+```{r fit_8.8.3, message=FALSE, warning=FALSE}
+```
+
+```{r print_8.8.3, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+The horizontal lines indicate the +-standard deviation of the spread, which can be used as strategy to enter trades.
