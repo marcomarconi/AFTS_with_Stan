@@ -1,0 +1,99 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{=html}
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+```
+```{r setup, include=FALSE,echo=FALSE}
+require(knitr)
+knitr::opts_chunk$set(echo = TRUE,fig.width=14,fig.height=7)
+read_chunk('common.R')
+read_chunk('Chapter_9.R')
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+
+```
+
+![](images/plot_9.2.png){width="1000"}
+
+In this series we are trying to reproduce the models and examples listed in the book "Analysis of Financial Time Series, 3rd Edition", by Ruey S. Tsay, using Stan <https://mc-stan.org/> and the package RStan <https://cran.r-project.org/web/packages/rstan/index.html>. The main repository for the presented models and data can be found at <https://github.com/marcomarconi/AFTS_with_Stan>.
+
+```{r load_packages,   message=FALSE}
+```
+
+## 9.2 MACROECONOMETRIC FACTOR MODELS
+
+We are going to consider a single-factor market model:
+
+$$ r_{it} = \alpha_i + \beta_i r_{mt} + e_{it}, \quad i=i,...k, \quad t=1,...,T,$$ where $r$ it is the excess return of the ith asset, $r_{mt}$ is the excess return of the market, and $\beta_i$ is the well-known $\beta$ for stock returns. We consider the percentage monthly returns of 13 stocks from January 1990 to December 2003 and use the return of the S&P 500 index as the market return.\
+The single-factor market model implementation in Stan is straightforward:
+
+```{stan code=readLines("../models/Chapter_9/SFM.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+Let's fit the data to the model:
+
+```{r load_9.2.1, message=FALSE, warning=FALSE}
+```
+
+``` {.R}
+SFM <- stan_model("models/Chapter_9/SFM.stan")
+fit_SFM <- sampling(SFM, data = list(T=nrow(m), K=ncol(m)-1, r=m[,1:(ncol(m)-1)], m=m[,ncol(m)]), chains = 4, cores = 4, iter=1000)
+```
+
+```{r fit_9.2.1, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+We can observe the bayesian estimation for the betas, and plot them with the implied 90% compatible intervals:
+
+```{r plot_9.2.1, message=FALSE, warning=FALSE}
+```
+
+One assumption of this model is that the special factor are not correlated among the stocks, but we can see that some high correlations still exist:
+
+```{r corr_9.2.1, message=FALSE, warning=FALSE}
+```
+
+## 9.3 FUNDAMENTAL FACTOR MODELS
+
+Fundamental factor models use observable asset specific fundamentals such as industrial classification, market capitalization, book value, and style classification (growth or value) to construct common factors that explain the excess returns. In this type of factor models the betas are treated as observed values (usually as 0 or 1 indicators to specify to which class the asset belongs) and tries to estimate the factors.
+
+### 9.3.1 BARRA Factor Model
+
+The BARRA model is similar to the previous market model but the returns are first mean corrected, and the betas are provided as 0/1 indicators.\
+The BARRA model can be implemented in Stan as follows:
+
+```{stan code=readLines("../models/Chapter_9/BARRA.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+For example we consider 10 stocks returns (mean-corrected) and classify them depending on the industrial sector, finance, technology or other:
+
+```{r load_9.3.1, message=FALSE, warning=FALSE}
+```
+
+We can fit the BARRA model to this data:
+
+``` {.R}
+BARRA <- stan_model("models/Chapter_9/BARRA.stan")
+fit_BARRA <- sampling(BARRA,  data=list(N = nrow(rtn), K=ncol(rtn), y = rtn, F=3, betas=ind.dum) , chains=4, cores=4)
+```
+
+```{r fit_9.3.1, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+We can plot the estimated factor realizations of BARRA industrial factor model for the three industrial sectors:
+
+```{r plot_9.3.1, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+## 9.5 STATISTICAL FACTOR ANALYSIS
+
+We are not going to see factor analysis models but we refer the reader to the Stan manual page <https://mc-stan.org/docs/2_27/stan-users-guide/loading-matrix-for-factor-analysis.html> and the implementation proposed by Rick Farouni <https://rfarouni.github.io/assets/projects/BayesianFactorAnalysis/BayesianFactorAnalysis.html>.
