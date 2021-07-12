@@ -3,4 +3,4 @@ In this repository we are trying to reproduce the models and examples listed in 
 
 Comments and corrections are welcome.
 
-Chack also the blog https://notimeforbayes.blogspot.com/
+Check also the blog https://notimeforbayes.blogspot.com/
