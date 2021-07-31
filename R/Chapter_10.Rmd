@@ -1,0 +1,231 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{=html}
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+```
+![](images/plot_10.5.png)
+
+```{r setup, include=FALSE,echo=FALSE}
+require(knitr)
+knitr::opts_chunk$set(echo = TRUE,fig.width=14,fig.height=7)
+read_chunk('common.R')
+read_chunk('Chapter_10.R')
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+
+```
+
+In this series we are trying to reproduce the models and examples listed in the book "Analysis of Financial Time Series, 3rd Edition", by Ruey S. Tsay, using Stan <https://mc-stan.org/> and the package RStan <https://cran.r-project.org/web/packages/rstan/index.html>. The main repository for the presented models and data can be found at <https://github.com/marcomarconi/AFTS_with_Stan>.
+
+```{r load_packages,   message=FALSE}
+```
+
+## 10.1 EXPONENTIALLY WEIGHTED ESTIMATE
+
+The exponentially weighted moving-average (EWMA) is way to estimate the unconditional covariance matrix of the innovations of a time series. For a sufficiently long time series it can be approximated as
+
+$$ \widehat{\Sigma}_{t} = (1-\lambda)a_{t-1}a'_{t-1}+\lambda\widehat{\Sigma}_{t-1} $$ This model can be written in Stan as:
+
+```{stan code=readLines("../models/Chapter_10/EWMA.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+### Example 10.1.
+
+We are going to fit a univariate GARCH model to daily log returns of the Hang Seng index of Hong Kong and the Nikkei 225 index of Japan from January 4, 2006, to December 30, 2008, for 713 observations, and later smooth the estimated volatility using EWMA.
+
+```{r load_10.1, message=FALSE, warning=FALSE}
+```
+
+Let's see the GARCH estimate first:
+
+```{r fit_10.1, message=FALSE, warning=FALSE}
+```
+
+and now apply the EWMA smoothing to the estimated volatilities, you can see that the parameters are similar to Tsay's:
+
+``` {.R}
+EWMA <- stan_model("models/Chapter_10/EWMA.stan")
+fit_EWMA <- sampling(EWMA, data = list(N = nrow(r), y=r, Sigma1=cov(r), K=2, approx=1), chains = 4, cores = 4)
+```
+
+```{r EWMA_10.1, message=FALSE, warning=FALSE}
+```
+
+```{r EWMA_plot_10.1, message=FALSE, warning=FALSE}
+```
+
+### 10.2.1 Diagonal Vectorization (VEC) Model
+
+The DVEC model is a generalization of the EWMA proposed by Bollerslev, Engle, and Wooldridge (1988). It can be coded in Stan as follows:
+
+```{stan code=readLines("../models/Chapter_10/DVEC.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+Fitting this model is quite hard as the positive-definitiveness of covariance matrix may not be guaranteed.\
+Let's fit it to the monthly returns of Pfizer and Merck stocks:
+
+```{r load_10.2, message=FALSE, warning=FALSE}
+```
+
+```{r fit_10.2, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+``` {.R}
+DVEC <- stan_model("models/Chapter_10/DVEC.stan")
+fit_DVEC <- sampling(DVEC, data = list(N = nrow(r), y=r[,-1], Sigma1=cov(r[,-1]), K=2), iter=500,chains = 1, cores = 4, control=list(adapt_delta=0.99))
+```
+
+We can plot the estimated volatilities and time-varying correlations. Unfortunately, the time-varying correlation do not match the one presented in the book:
+
+```{r plot_10.2, message=FALSE, warning=FALSE}
+```
+
+## 10.4 GARCH MODELS FOR BIVARIATE RETURNS
+
+Univariate volatility models can be readily extended to the multivariate case. In this situation, the conditional covariatence matrix at a given time can be reparametrized as :
+
+$$ \Sigma_t = D_t\rho_tD_t $$
+
+where $\rho_t$ is the conditional correlation matrix of $a_t$ , and $D_t$ is a k × k diagonal matrix consisting of the conditional standard deviations of elements of $a_t$. Therefore, to model the volatility is suffices to consider the k(k + 1)/2-dimensional vector:
+
+$$ 
+\Xi_{t} = (\sigma_{11,t},...,\sigma_{kk,t},\zeta'_t)
+$$
+
+where $\zeta'_t$ is a k(k − 1)/2-dimensional vector obtained by stacking columns of the correlation matrix $\rho_t$ , but using only elements below the main diagonal.
+
+### 10.4.1 Constant-Correlation Models
+
+Under the assumption of constant correlation the model the volatility model becomes:
+
+$$
+\Xi_t = (\sigma_{11,t},\sigma_{22,t})' \\
+\Xi_t = \alpha_0+\alpha_1a^2_{t-1}+beta_1\Xi_{t-1}
+$$
+
+A simple bivariate M-GARCH model of this kind can be modelled in Stan as:
+
+```{stan code=readLines("../models/Chapter_10/MGARCH.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+Let's fit this model to the daily log returns of Hong Kong and Japanese markets seen before:
+
+```{r load_10.4, message=FALSE, warning=FALSE}
+```
+
+```{r fit_10.4, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+``` {.R}
+fit_MGARCH_hkjp <- stan_model("models/Chapter_10/fit_MGARCH_hkjp.stan")
+fit_MGARCH_hkjp <- sampling(MGARCH, data = list(N= nrow(r), y=r, Sigma1=cov(r)), iter=500,chains = 4, cores = 4, init=0)
+```
+
+The parameters estimated by the model are close to Tsay's:
+
+```{r print_10.4, message=FALSE, warning=FALSE}
+```
+
+The Ljung--Box statistics of the standardized residuals do not show any sort of model inadequancy:
+
+```{r residuals_10.4, message=FALSE, warning=FALSE}
+```
+
+### 10.4.2 Time-Varying Correlation Models
+
+Constant correlation is quite a strong assumption, especially for long term relationships like between IBM stock and the S&P 500 index. We are going to apply a time-varying correlation model that use the Cholesky decomposition of the conditional covariance matrix. The formulas are quite involved so please refer to equations (10.28) and (10.30) of the book. The model can be coded in Stan as follows, notice that the model accept three type of likelihoods: 1 - using a multivariate normal with the covariance decomposed as LGL' Cholesky, 2 - using the special multivariate normal for Cholesky provided by Stan, and 3 - using the analytic likelihood described in the book at equqation (10.20). We are going to use the second option in this example:
+
+```{stan code=readLines("../models/Chapter_10/MGARCH_cholesky.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+Let's fit it to the S&P500 vs IBM data:
+
+```{r load_10.5, message=FALSE, warning=FALSE}
+```
+
+```{r fit_10.5, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+``` {.R}
+fit_MGARCH_chol <- stan_model("models/Chapter_10/fit_MGARCH_chol.stan")
+fit_MGARCH_chol <- sampling(MGARCH_chol, data = list(N= nrow(r), y=r, Xi0=c(sd(r[,1]), sd(r[,2]), cor(r[,1], r[,2])), prior=0, likelihood=2), iter=500,chains = 1,  init=0)
+```
+
+The parameters estimated are very close to Tsay's
+
+```{r print_10.5, message=FALSE, warning=FALSE}
+```
+
+Additionally, we can plot the fitted conditional correlation coefficient, with the 90% credible intervals:
+
+```{r plot_10.5, message=FALSE, warning=FALSE}
+```
+
+As you can see, the estimated time-varying correlation is close to the one obtained in the book.
+
+### 10.4.3 Dynamic Correlation Models
+
+Tsay (2006) proposed a Dynamic Correlation Models where standardized innovations are assumed to follow a multivariate Student-t distribution and the diagonal matrix of the stardard deviations of the decomposed $\Sigma$ seen before is defined as:
+
+$$
+  D^2_t = \Lambda_0 + \Lambda_1D^2_{t-1}+\Lambda_2A^2_{t-1}
+$$
+
+The equation can also be extended with a leverage effect element.\
+The correlation matrix is instead defined as:
+
+$$
+  \rho_t = (1-\theta_1-\theta_2)\hat\rho+\theta_1\psi_{t-1}+\theta_2\rho_{t-1}
+$$ Where $\hat\rho$ is the sample correlation matrix and $\psi_t$ is the rolling sample correlation matrix of length $m$.\
+This model is more parsimonious than the ones presented before as it uses the sample data in the specifications.\
+The DCC in Stan can be implemented as follows:
+
+```{stan code=readLines("../models/Chapter_10/DCC.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
+
+```
+
+We are going to fit the model to the daily exchange rates between U.S. dollar versus European euro and Japanese yen and the stock prices of IBM and Dell from January 1999 to December 2004:
+
+```{r load_10.5, message=FALSE, warning=FALSE}
+```
+
+The model requires the rolling matrix correlations as input:
+
+```{r Psi_10.6, message=FALSE, warning=FALSE}
+```
+
+Let's fit the model:
+
+```{r fit_10.6, message=FALSE, warning=FALSE, echo=FALSE}
+```
+
+``` {.R}
+DCC <- stan_model("models/Chapter_10/DCC.stan")
+fit_DCC <- sampling(DCC, data = list(N= nrow(x), y=x, Rho_hat=cor(x), K=4, Psi=Psi ,prior=0), chains=1, iter=500)
+```
+
+The parameters estimated are similar to Tsay's (with the exception of the thetas):
+
+```{r print_10.6, message=FALSE, warning=FALSE}
+```
+
+Additionally, we can plot the estimated volatilities against the rolling estimations:
+
+```{r D_10.6, message=FALSE, warning=FALSE}
+```
+
+Here we show, the time plots of time-varying correlations between percentage simple returns of four assets:
+
+```{r Rho_10.6, message=FALSE, warning=FALSE, fig.height=14}
+```

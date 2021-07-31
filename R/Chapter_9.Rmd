@@ -31,7 +31,9 @@ In this series we are trying to reproduce the models and examples listed in the 
 
 We are going to consider a single-factor market model:
 
-$$ r_{it} = \alpha_i + \beta_i r_{mt} + e_{it}, \quad i=i,...k, \quad t=1,...,T,$$ where $r$ it is the excess return of the ith asset, $r_{mt}$ is the excess return of the market, and $\beta_i$ is the well-known $\beta$ for stock returns. We consider the percentage monthly returns of 13 stocks from January 1990 to December 2003 and use the return of the S&P 500 index as the market return.\
+$$ r_{it} = \alpha_i + \beta_i r_{mt} + e_{it}, \quad i=i,...k, \quad t=1,...,T,$$ 
+
+where $r$ it is the excess return of the ith asset, $r_{mt}$ is the excess return of the market, and $\beta_i$ is the well-known $\beta$ for stock returns. We consider the percentage monthly returns of 13 stocks from January 1990 to December 2003 and use the return of the S&P 500 index as the market return.\
 The single-factor market model implementation in Stan is straightforward:
 
 ```{stan code=readLines("../models/Chapter_9/SFM.stan"),  output.var='priors', eval = FALSE, tidy = FALSE}
